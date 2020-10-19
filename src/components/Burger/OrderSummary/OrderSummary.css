@@ -1,0 +1,11 @@
+.OrderCaption {
+    text-align: center;
+    color: #CF8F2E;
+    font-size: 24px;
+}
+
+.OrderList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
