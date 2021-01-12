@@ -1,49 +1,74 @@
 import React, { Component } from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import {createStore, applyMiddleware, compose, combineReducers} from 'redux';
-import thunk from 'redux-thunk';
+import { Redirect, Route, Switch, withRouter } from 'react-router-dom';
+import { connect } from 'react-redux';
 
 import Spinner from './components/UI/Spinner/Spinner';
 import Layout from './HOC/Layout/Layout';
 import BurgerBuilder from './containers/BurgerBuilder/BurgerBuilder';
 import Checkout from './containers/Checkout/Checkout';
-import burgerBuilderReducer from './store/reducers/burgerBuilder';
-import orderReducer from './store/reducers/order';
+import Auth from './containers/Auth/Auth';
+import Logout from './containers/Auth/Logout/Logout';
+import * as actions from './store/actions/index';
 
 const Orders = React.lazy(() => import('./containers/Orders/Orders'))
 
-const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-const rootReducer = combineReducers({
-  burger: burgerBuilderReducer,
-  order: orderReducer
-})
-const store = createStore(rootReducer, composeEnhancers(
-  applyMiddleware(thunk)
-));
+
 
 class App extends Component {
+
+  componentDidMount() {
+    this.props.onTryAutoSignup()
+  }
+
   render() {
+    console.log('isAuth', this.props.isAuth);
+
+    let routes = (
+      <Switch>
+        <Route path='/auth' component={Auth} />
+        <Route path="/" exact component={BurgerBuilder} />
+        <Redirect to="/" />
+      </Switch>
+    );
+
+    if (this.props.isAuth) {
+      routes = (
+        <Switch>
+          <Route path="/checkout" component={Checkout} />
+          <Route path="/orders" render={() => (
+            <React.Suspense fallback={<Spinner />}>
+              <Orders />
+            </React.Suspense>
+          )} />
+          <Route path='/logout' component={Logout} />
+          <Route path="/" exact component={BurgerBuilder} />
+          <Redirect to="/" />
+
+        </Switch>
+      )
+    }
+
+
     return (
       <div>
-        <Provider store ={store}>
-          <BrowserRouter>
-            <Layout>
-              <Switch>
-                <Route path="/checkout" component={Checkout} />
-                <Route path="/orders" render={() => (
-                  <React.Suspense fallback={<Spinner />}>
-                    <Orders />
-                  </React.Suspense>
-                )} />
-                <Route path="/" component={BurgerBuilder} />
-              </Switch>
-            </Layout>
-          </BrowserRouter>
-        </Provider>
+        <Layout>
+          {routes}
+        </Layout>
       </div>
     );
   }
 }
 
-export default App;
+const mapStateToProps = state => {
+  return {
+    isAuth: state.auth.token !== null
+  }
+}
+
+const mapDispatchToProps = dispatch => {
+  return {
+    onTryAutoSignup: () => dispatch(actions.authCheckState())
+  }
+}
+
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(App));
